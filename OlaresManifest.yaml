@@ -1,0 +1,23 @@
+olaresManifest.version: '0.1.0'
+olaresManifest.type: app
+metadata:
+  name: clawteam
+  title: Claw Team Agent
+  description: AI coding agent team for building applications
+  version: 0.1.0
+  icon: https://example.com/clawteam.png
+  categories:
+  - Developer Tools
+entrances:
+- name: api
+  port: 8000
+  title: Claw Team API
+  host: api
+  authLevel: internal
+spec:
+  requiredCpu: 100m
+  requiredMemory: 128Mi
+  limitedCpu: 1000m
+  limitedMemory: 1Gi
+permission:
+  appData: true

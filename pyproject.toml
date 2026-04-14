@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "claw-team"
+version = "0.1.0"
+description = "Multi-agent team for reverse-engineering web UI into Figma Design Systems"
+authors = ["Claw Team"]
+readme = "README.md"
+package-mode = false
+packages = [
+    { include = "shared" },
+    { include = "claw_system" },
+    { include = "claw_collector" },
+    { include = "claw_analyst" },
+    { include = "claw_fig" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<=3.13"
+pydantic = "^2.10.0"
+pydantic-settings = "^2.7.0"
+structlog = "^24.4.0"
+aiosqlite = "^0.20.0"
+litellm = "^1.60.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clawteam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clawteam
+  template:
+    metadata:
+      labels:
+        app: clawteam
+    spec:
+      containers:
+      - name: api
+        image: python:3.12-slim@sha256:fd8dcd2d10f1f8a7f1be1f1e8dd9bb7f72f1ee2a6f2b47e95fc9e7f2e5c9e0c
+        command: ["python", "-m", "http.server", "8000", "--bind", "0.0.0.0"]
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
