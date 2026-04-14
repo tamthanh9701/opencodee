@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Multi-agent team for reverse-engineering web UI into Figma Design Systems"
 authors = ["Claw Team"]
 readme = "README.md"
-package-mode = false
 packages = [
     { include = "shared" },
     { include = "claw_system" },
@@ -20,6 +19,8 @@ pydantic-settings = "^2.7.0"
 structlog = "^24.4.0"
 aiosqlite = "^0.20.0"
 litellm = "^1.60.0"
+crewai = "^0.60.0"
+mcp = "^1.27.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

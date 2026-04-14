@@ -1,23 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from shared.config import settings
 
-_crewai = None
+if TYPE_CHECKING:
+    from crewai import Agent, Task, Crew, Process
 
 
-def _get_crewai():
-    global _crewai
-    if _crewai is None:
-        from crewai import Agent, Task, Crew, Process
-        _crewai = type("CrewAIMod", (), {"Agent": Agent, "Task": Task, "Crew": Crew, "Process": Process})
-    return _crewai
-
-
-def _get_llm() -> str:
+def get_llm():
     return settings.litellm_model
 
 
-def _make_collector_agent():
-    crewai = _get_crewai()
-    return crewai.Agent(
+def create_collector_agent():
+    return Agent(
         role="UI Collector",
         goal="Scrape web pages and extract all UI elements with their computed styles, screenshots, and assets",
         backstory=(
@@ -27,14 +21,13 @@ def _make_collector_agent():
             "Your output is a structured representation of the entire page's visual properties."
         ),
         tools=[],
-        llm=_get_llm(),
+        llm=get_llm(),
         verbose=True,
     )
 
 
-def _make_analyst_agent():
-    crewai = _get_crewai()
-    return crewai.Agent(
+def create_analyst_agent():
+    return Agent(
         role="UI Analyst",
         goal="Analyze collected UI data and produce design tokens with component definitions",
         backstory=(
@@ -45,14 +38,13 @@ def _make_analyst_agent():
             "Your output is a complete design specification ready for Figma."
         ),
         tools=[],
-        llm=_get_llm(),
+        llm=get_llm(),
         verbose=True,
     )
 
 
-def _make_fig_agent():
-    crewai = _get_crewai()
-    return crewai.Agent(
+def create_fig_agent():
+    return Agent(
         role="Figma Design System Builder",
         goal="Transform design tokens and component definitions into a structured Figma Design System",
         backstory=(
@@ -62,14 +54,13 @@ def _make_fig_agent():
             "Figma file with a complete, documented design system."
         ),
         tools=[],
-        llm=_get_llm(),
+        llm=get_llm(),
         verbose=True,
     )
 
 
-def build_collect_task(url: str):
-    crewai = _get_crewai()
-    return crewai.Task(
+def build_collect_task(url: str, agent: Agent):
+    return Task(
         description=(
             f"Scrape the web page at {url} and extract all UI elements. "
             "For each element, capture: tag name, computed CSS styles (font, color, spacing, "
@@ -77,14 +68,13 @@ def build_collect_task(url: str):
             "Also download all images, SVGs, and icon assets. "
             "Return a CollectedPage object with all this data."
         ),
-        agent=_make_collector_agent(),
+        agent=agent,
         expected_output="CollectedPage object with url, viewport, full_screenshot, elements list, and assets list",
     )
 
 
-def build_analyze_task():
-    crewai = _get_crewai()
-    return crewai.Task(
+def build_analyze_task(agent: Agent):
+    return Task(
         description=(
             "Analyze the collected UI data from the previous step. "
             "Classify each element into a role (button, input, card, nav, typography, etc.). "
@@ -93,14 +83,13 @@ def build_analyze_task():
             "Assign confidence scores to each token. "
             "Return an AnalysisResult object with all tokens and component definitions."
         ),
-        agent=_make_analyst_agent(),
+        agent=agent,
         expected_output="AnalysisResult object with tokens, components, color_palette, typography_scale, and spacing_scale",
     )
 
 
-def build_fig_task():
-    crewai = _get_crewai()
-    return crewai.Task(
+def build_fig_task(agent: Agent):
+    return Task(
         description=(
             "Create a Figma Design System from the analysis results. "
             "Using the Figma API, create: 1) Color styles from the color palette, "
@@ -108,30 +97,55 @@ def build_fig_task():
             "4) Component frames with auto-layout and variants for each component definition. "
             "Return the Figma file URL and key of the created design system."
         ),
-        agent=_make_fig_agent(),
+        agent=agent,
         expected_output="Figma file URL with the complete design system",
     )
 
 
 class ClawCrew:
     def __init__(self) -> None:
-        self._agents = None
+        self._collector_agent = None
+        self._analyst_agent = None
+        self._fig_agent = None
+        self._crew = None
 
     @property
-    def agents(self):
-        if self._agents is None:
-            self._agents = [_make_collector_agent(), _make_analyst_agent(), _make_fig_agent()]
-        return self._agents
+    def collector_agent(self):
+        if self._collector_agent is None:
+            self._collector_agent = create_collector_agent()
+        return self._collector_agent
+
+    @property
+    def analyst_agent(self):
+        if self._analyst_agent is None:
+            self._analyst_agent = create_analyst_agent()
+        return self._analyst_agent
+
+    @property
+    def fig_agent(self):
+        if self._fig_agent is None:
+            self._fig_agent = create_fig_agent()
+        return self._fig_agent
 
     def create_crew(self, url: str):
-        crewai = _get_crewai()
-        collect_task = build_collect_task(url)
-        analyze_task = build_analyze_task()
-        fig_task = build_fig_task()
+        collect_task = build_collect_task(url, self.collector_agent)
+        analyze_task = build_analyze_task(self.analyst_agent)
+        fig_task = build_fig_task(self.fig_agent)
 
-        return crewai.Crew(
-            agents=self.agents,
+        self._crew = Crew(
+            agents=[self.collector_agent, self.analyst_agent, self.fig_agent],
             tasks=[collect_task, analyze_task, fig_task],
-            process=crewai.Process.sequential,
+            process=Process.sequential,
             verbose=True,
         )
+        return self._crew
+
+    def kickoff(self, url: str):
+        if self._crew is None:
+            self.create_crew(url)
+        return self._crew.kickoff()
+
+
+def run_pipeline(url: str):
+    crew = ClawCrew()
+    return crew.kickoff(url)

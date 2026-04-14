@@ -20,5 +20,5 @@ class AnalysisResult(BaseModel):
     tokens: list[DesignToken] = Field(default_factory=list)
     components: list[ComponentDef] = Field(default_factory=list)
     color_palette: dict[str, list[str]] = Field(default_factory=dict)
-    typography_scale: dict[str, dict] = Field(default_factory=dict)
-    spacing_scale: dict[str, str] = Field(default_factory=dict)
+    typography_scale: dict[str, list[str]] = Field(default_factory=dict)
+    spacing_scale: dict[str, list[str]] = Field(default_factory=dict)
